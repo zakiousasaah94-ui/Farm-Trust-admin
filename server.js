@@ -128,6 +128,19 @@ app.post('/api/deposit', async (req, res) => {
     res.json({ message: "Deposit requested successfully." });
 });
 
+// NEW: Get User Transaction History
+app.get('/api/transactions/:userId', async (req, res) => {
+    try {
+        const txns = await db.collection('transactions')
+            .find({ user_id: new ObjectId(req.params.userId) })
+            .sort({ _id: -1 }) // Newest first
+            .toArray();
+        res.json(txns);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/invest', async (req, res) => {
     const { userId, amount, returnAmount, packageName, days } = req.body;
     const user = await db.collection('users').findOne({ _id: new ObjectId(userId) });
