@@ -1,7 +1,7 @@
 {
   "name": "farm-trust-admin",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -14,5 +14,6 @@
     "express": "^5.3.0",
     "mongodb": "^6.21.0",
     "sqlite3": "^6.0.1"
-  }
+  },
+  "start": "node server.js"
 }
