@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Trust - Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>::-webkit-scrollbar { display: none; }</style>
+</head>
+<body class="bg-gray-800 font-sans flex justify-center h-screen overflow-hidden">
+
+    <div class="w-full max-w-md bg-[#f4faf6] h-full overflow-y-auto relative shadow-2xl pb-20">
+        
+        <!-- Header -->
+        <header class="flex items-center p-4 bg-white shadow-sm sticky top-0 z-10 border-b">
+            <button onclick="window.location.href='/dashboard'" class="text-gray-600 font-bold text-xl mr-4">&larr;</button>
+            <h1 class="text-xl font-extrabold text-gray-800">My Profile</h1>
+        </header>
+
+        <div class="p-4">
+            <!-- User Info Card -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center mb-6">
+                <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-2xl font-bold mr-4">
+                    👤
+                </div>
+                <div>
+                    <h2 id="profile-name" class="text-xl font-bold text-gray-800">Loading...</h2>
+                    <p class="text-sm text-gray-500">Farm Trust Investor</p>
+                </div>
+            </div>
+
+            <!-- Account Details -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
+                <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+                    <span class="text-gray-600 font-medium">Current Balance</span>
+                    <span id="profile-balance" class="font-bold text-green-600 text-lg">GH₵ 0.00</span>
+                </div>
+                <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+                    <span class="text-gray-600 font-medium">Account Status</span>
+                    <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded">Verified</span>
+                </div>
+            </div>
+
+            <!-- Logout Button -->
+            <button onclick="logout()" class="w-full bg-red-50 text-red-600 border border-red-200 py-3 rounded-xl font-bold hover:bg-red-100 transition shadow-sm flex justify-center items-center">
+                <span class="mr-2">🚪</span> Logout
+            </button>
+        </div>
+
+        <!-- Bottom Nav -->
+        <nav class="fixed bottom-0 w-full max-w-md bg-white border-t flex justify-around py-3 shadow-lg z-10">
+            <a href="/dashboard" class="flex flex-col items-center text-gray-400 hover:text-green-600">
+                <span class="text-xl">🏠</span>
+                <span class="text-xs font-medium mt-1">Home</span>
+            </a>
+            <a href="/wallet" class="flex flex-col items-center text-gray-400 hover:text-green-600">
+                <span class="text-xl">💳</span>
+                <span class="text-xs font-medium mt-1">Wallet</span>
+            </a>
+            <a href="/profile" class="flex flex-col items-center text-green-600">
+                <span class="text-xl">👤</span>
+                <span class="text-xs font-medium mt-1">Profile</span>
+            </a>
+        </nav>
+    </div>
+
+    <script>
+        const user = JSON.parse(localStorage.getItem('user'));
+
+        if (!user) {
+            window.location.href = '/app';
+        }
+
+        // Load user details
+        async function loadProfile() {
+            const res = await fetch('/api/user/' + user.id);
+            const data = await res.json();
+            
+            document.getElementById('profile-name').innerText = data.username;
+            document.getElementById('profile-balance').innerText = `GH₵ ${data.balance.toFixed(2)}`;
+        }
+
+        function logout() {
+            // Clear the saved user from the browser
+            localStorage.removeItem('user');
+            // Redirect back to login page
+            window.location.href = '/app';
+        }
+
+        loadProfile();
+    </script>
+</body>
+</html>

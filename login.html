@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Trust - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-800 font-sans flex justify-center h-screen items-center p-4">
+
+    <div class="w-full max-w-md bg-white p-8 rounded-xl shadow-2xl">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-green-700">🌿 Farm Trust</h1>
+            <p class="text-gray-500 mt-2">Login or create an account</p>
+        </div>
+
+        <!-- Login Form -->
+        <div id="login-section">
+            <h2 class="text-xl font-bold mb-4">Login</h2>
+            <input type="email" id="login-email" placeholder="Email" class="w-full mb-3 p-3 border rounded-lg focus:outline-green-500 bg-gray-50">
+            <input type="password" id="login-password" placeholder="Password" class="w-full mb-4 p-3 border rounded-lg focus:outline-green-500 bg-gray-50">
+            <button onclick="login()" class="w-full bg-green-600 text-white p-3 rounded-lg font-bold hover:bg-green-700 shadow-md">Login</button>
+            <p class="text-center mt-4 text-sm text-gray-600">Don't have an account? <a href="#" onclick="toggleForms()" class="text-green-600 font-bold">Sign Up</a></p>
+        </div>
+
+        <!-- Signup Form (Hidden by default) -->
+        <div id="signup-section" class="hidden">
+            <h2 class="text-xl font-bold mb-4">Create Account</h2>
+            <input type="text" id="signup-username" placeholder="Full Name" class="w-full mb-3 p-3 border rounded-lg focus:outline-green-500 bg-gray-50">
+            <input type="text" id="signup-phone" placeholder="Phone Number" class="w-full mb-3 p-3 border rounded-lg focus:outline-green-500 bg-gray-50">
+            <input type="email" id="signup-email" placeholder="Email" class="w-full mb-3 p-3 border rounded-lg focus:outline-green-500 bg-gray-50">
+            <input type="password" id="signup-password" placeholder="Password" class="w-full mb-4 p-3 border rounded-lg focus:outline-green-500 bg-gray-50">
+            <button onclick="signup()" class="w-full bg-green-600 text-white p-3 rounded-lg font-bold hover:bg-green-700 shadow-md">Sign Up</button>
+            <p class="text-center mt-4 text-sm text-gray-600">Already have an account? <a href="#" onclick="toggleForms()" class="text-green-600 font-bold">Login</a></p>
+        </div>
+    </div>
+
+    <script>
+        function toggleForms() {
+            document.getElementById('login-section').classList.toggle('hidden');
+            document.getElementById('signup-section').classList.toggle('hidden');
+        }
+
+        async function signup() {
+            const username = document.getElementById('signup-username').value;
+            const phone = document.getElementById('signup-phone').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+
+            if(!username || !phone || !email || !password) return alert("Please fill all fields");
+
+            const res = await fetch('/api/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, phone, email, password })
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                alert("Account created! Please login.");
+                toggleForms();
+            } else {
+                alert(data.error);
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                localStorage.setItem('user', JSON.stringify(data.user));
+                window.location.href = '/dashboard';
+            } else {
+                alert(data.error);
+            }
+        }
+    </script>
+</body>
+</html>

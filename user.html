@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Trust</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>::-webkit-scrollbar { display: none; }</style>
+</head>
+<body class="bg-gray-800 font-sans flex justify-center h-screen overflow-hidden">
+
+    <div class="w-full max-w-md bg-[#f4faf6] h-full overflow-y-auto relative shadow-2xl pb-20">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-center p-4 bg-white shadow-sm sticky top-0 z-10">
+            <div class="flex items-center text-green-700 font-bold text-xl">🌿 <span class="ml-2">Farm Trust</span></div>
+            <div id="header-balance" class="bg-green-50 border border-green-200 px-4 py-1 rounded-full text-green-700 font-bold text-sm">GH₵ 0.00</div>
+        </header>
+
+        <div class="p-4">
+            <!-- Warning Message -->
+            <div class="bg-orange-50 border border-orange-200 rounded-xl p-3 flex justify-between items-center mb-4">
+                <div class="text-xs text-orange-800 pr-2">
+                    <span class="font-bold">!</span> If your deposit isn't reflecting on your account or balance.
+                </div>
+                <button class="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">Message Admin</button>
+            </div>
+
+            <!-- Totals -->
+            <div class="flex gap-2 mb-6">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex-1">
+                    <p class="text-[10px] text-gray-500 font-bold mb-1">INVESTED</p>
+                    <h2 id="total-invested" class="text-xl font-bold text-gray-800">GH₵ 0</h2>
+                </div>
+                <div class="bg-green-600 p-4 rounded-xl shadow-sm flex-1">
+                    <p class="text-[10px] text-green-100 font-bold mb-1">TOTAL PROFIT</p>
+                    <h2 id="total-profit" class="text-xl font-bold text-white">GH₵ 0</h2>
+                </div>
+            </div>
+
+            <!-- My Investments List -->
+            <h2 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1">🔥 Mining Farm</h2>
+            <div id="my-investments" class="space-y-3 mb-8">
+                <!-- Investments load here -->
+            </div>
+
+            <!-- Invest Now -->
+            <h2 class="text-lg font-bold mb-4 text-gray-800 flex items-center gap-1">⚡ Invest Now</h2>
+            <div id="packages-grid" class="grid grid-cols-2 gap-4"></div>
+        </div>
+
+        <!-- Bottom Nav -->
+        <nav class="fixed bottom-0 w-full max-w-md bg-white border-t flex justify-around py-3 shadow-lg z-10">
+            <a href="/dashboard" class="flex flex-col items-center text-green-600">
+                <span class="text-xl">🏠</span>
+                <span class="text-xs font-medium mt-1">Home</span>
+            </a>
+            <a href="/wallet" class="flex flex-col items-center text-gray-400 hover:text-green-600">
+                <span class="text-xl">💳</span>
+                <span class="text-xs font-medium mt-1">Wallet</span>
+            </a>
+            <a href="/profile" class="flex flex-col items-center text-gray-400 hover:text-green-600">
+                <span class="text-xl">👤</span>
+                <span class="text-xs font-medium mt-1">Profile</span>
+            </a>
+        </nav>
+    </div>
+
+    <script>
+        const user = JSON.parse(localStorage.getItem('user'));
+        let currentBalance = 0; 
+
+        if (!user) window.location.href = '/app';
+
+        async function loadBalance() {
+            const res = await fetch('/api/user/' + user.id);
+            const data = await res.json();
+            currentBalance = data.balance;
+            document.getElementById('header-balance').innerText = `GH₵ ${currentBalance.toFixed(2)}`;
+        }
+
+        async function loadInvestments() {
+            const res = await fetch('/api/investments/' + user.id);
+            const investments = await res.json();
+            const container = document.getElementById('my-investments');
+            
+            let totalInvested = 0;
+            let totalProfit = 0;
+
+            if (investments.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-500 bg-white p-4 rounded-xl shadow-sm">You have no active investments yet.</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            investments.forEach(inv => {
+                totalInvested += inv.invest_amount;
+                totalProfit += inv.return_amount;
+
+                const now = new Date();
+                const start = new Date(inv.start_date);
+                const end = new Date(inv.end_date);
+                
+                // Calculate progress percentage
+                const totalTime = end - start;
+                const timePassed = now - start;
+                let progress = (timePassed / totalTime) * 100;
+                if (progress > 100) progress = 100;
+                if (progress < 0) progress = 0;
+
+                const isDue = progress >= 100;
+
+                const statusText = isDue ? 'PENDING WITHDRAWAL' : 'Ongoing';
+                const statusColor = isDue ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700';
+                const progressColor = isDue ? 'bg-orange-500' : 'bg-green-500';
+
+                container.innerHTML += `
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex items-center gap-3">
+                                <img src="${inv.image_url}" class="w-10 h-10 rounded-lg object-cover">
+                                <div>
+                                    <p class="font-bold text-gray-800 text-sm">${inv.package_name.replace(' Package', '')}</p>
+                                </div>
+                            </div>
+                            <p class="font-bold text-green-600">GH₵ ${inv.return_amount}</p>
+                        </div>
+                        
+                        <!-- Progress Bar -->
+                        <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                            <div class="${progressColor} h-2 rounded-full" style="width: ${progress}%"></div>
+                        </div>
+
+                        <div class="flex justify-between items-center text-xs mt-3">
+                            <span class="px-2 py-1 rounded font-bold ${statusColor}">${statusText}</span>
+                            <div class="text-gray-400 text-right text-[10px]">
+                                <p>Started: ${start.toLocaleString()}</p>
+                                <p>Ends: ${end.toLocaleString()}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('total-invested').innerText = `GH₵ ${totalInvested}`;
+            document.getElementById('total-profit').innerText = `GH₵ ${totalProfit}`;
+        }
+
+        async function loadPackages() {
+            const res = await fetch('/api/packages');
+            const packages = await res.json();
+            const grid = document.getElementById('packages-grid');
+            grid.innerHTML = ''; 
+
+            packages.forEach(pkg => {
+                grid.innerHTML += `
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col border border-gray-100">
+                        <div class="relative h-28 bg-gray-200">
+                            <img src="${pkg.image_url}" class="w-full h-full object-cover">
+                            <span class="absolute top-2 left-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded-md">${pkg.duration}</span>
+                        </div>
+                        <div class="p-3 flex-1 flex flex-col justify-between">
+                            <div>
+                                <h3 class="font-bold text-gray-900 text-sm leading-tight mb-1">${pkg.name}</h3>
+                                <p class="text-[11px] text-gray-500">Invest</p>
+                                <p class="font-bold text-gray-900 text-sm">GH₵ ${pkg.invest_amount}</p>
+                                <p class="text-[11px] text-gray-500 mt-1">Return</p>
+                                <p class="font-bold text-green-600 text-sm">GH₵ ${pkg.return_amount}</p>
+                            </div>
+                            <button onclick="handleInvest(${pkg.invest_amount}, ${pkg.return_amount}, '${pkg.name}', ${pkg.days})" class="mt-3 w-full bg-[#0f172a] text-white py-1.5 rounded-lg font-semibold text-xs hover:bg-gray-800 transition">
+                                Invest
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        async function handleInvest(cost, returnAmount, packageName, days) {
+            if (currentBalance < cost) {
+                alert("Insufficient Balance");
+                return;
+            }
+
+            const confirmInvest = confirm(`Invest GH₵ ${cost} into ${packageName}?`);
+            if (!confirmInvest) return;
+
+            const res = await fetch('/api/invest', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id, amount: cost, returnAmount: returnAmount, packageName: packageName, days: days })
+            });
+            
+            if (res.ok) {
+                alert("Investment successful! Check 'My Investments'.");
+                loadBalance(); 
+                loadInvestments();
+            } else {
+                const data = await res.json();
+                alert("Error: " + data.error);
+            }
+        }
+
+        loadBalance();
+        loadPackages();
+        loadInvestments();
+    </script>
+</body>
+</html>

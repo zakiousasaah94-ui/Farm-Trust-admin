@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Trust - Wallet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>::-webkit-scrollbar { display: none; }</style>
+</head>
+<body class="bg-gray-800 font-sans flex justify-center h-screen overflow-hidden">
+
+    <div class="w-full max-w-md bg-[#f4faf6] h-full overflow-y-auto relative shadow-2xl pb-20">
+        
+        <header class="flex justify-between items-center p-4 bg-white shadow-sm sticky top-0 z-10">
+            <div class="flex items-center text-green-700 font-bold text-xl">🌿 <span class="ml-2">Farm Trust</span></div>
+            <div id="header-balance" class="bg-green-50 border border-green-200 px-4 py-1 rounded-full text-green-700 font-bold text-sm">GH₵ 0.00</div>
+        </header>
+
+        <div class="p-4">
+            <h2 class="text-lg font-bold mb-4 text-gray-800">💳 My Wallet</h2>
+            
+            <!-- Account Balance Box -->
+            <div class="bg-[#0f172a] p-6 rounded-2xl shadow-lg text-center mb-6">
+                <p class="text-gray-400 text-xs mb-1 font-bold tracking-widest">AVAILABLE BALANCE</p>
+                <h1 id="wallet-balance" class="text-4xl font-bold text-white">GH₵ 0.00</h1>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex border-b mb-6">
+                <button id="tab-deposit" onclick="switchTab('deposit')" class="flex-1 py-3 text-gray-500 font-bold border-b-2 border-transparent">Deposit</button>
+                <button id="tab-withdraw" onclick="switchTab('withdraw')" class="flex-1 py-3 text-red-500 font-bold border-b-2 border-red-500">Withdraw</button>
+            </div>
+
+            <!-- Deposit View -->
+            <div id="view-deposit" class="hidden">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
+                    <h3 class="font-bold text-gray-800 mb-2">Make a Deposit</h3>
+                    <p class="text-xs text-gray-500 mb-3">Enter amount, click pay below, then wait for admin approval.</p>
+                    <input type="number" id="deposit-amount" placeholder="Enter amount (GH₵)" class="w-full mb-3 p-3 border rounded-xl focus:outline-green-500 font-bold bg-gray-50">
+                    <button onclick="processDeposit()" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition shadow-md">
+                        Pay via Paystack
+                    </button>
+                </div>
+            </div>
+
+            <!-- Withdraw View -->
+            <div id="view-withdraw">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
+                    <h3 class="font-bold text-gray-800 mb-2">Withdraw Funds</h3>
+                    <div class="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-xs mb-4 font-semibold">
+                        Important: You must pay a mandatory fee of <strong>GH₵ 200</strong> via Paystack before your request can be processed.
+                    </div>
+                    
+                    <label class="text-xs font-bold text-gray-500 uppercase">Mobile Number</label>
+                    <input type="text" id="momo-number" placeholder="0XXXXXXXXX" class="w-full mt-1 mb-3 p-3 border rounded-xl focus:outline-green-500 font-bold bg-gray-50">
+
+                    <label class="text-xs font-bold text-gray-500 uppercase">Amount to withdraw</label>
+                    <input type="number" id="withdraw-amount" placeholder="Enter amount" class="w-full mt-1 mb-3 p-3 border rounded-xl focus:outline-green-500 font-bold bg-gray-50">
+
+                    <button onclick="openWithdrawModal()" class="w-full bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition shadow-md">
+                        Request Withdrawal
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <nav class="fixed bottom-0 w-full max-w-md bg-white border-t flex justify-around py-3 shadow-lg z-10">
+            <a href="/dashboard" class="flex flex-col items-center text-gray-400 hover:text-green-600">
+                <span class="text-xl">🏠</span>
+                <span class="text-xs font-medium mt-1">Home</span>
+            </a>
+            <a href="/wallet" class="flex flex-col items-center text-red-500">
+                <span class="text-xl">💳</span>
+                <span class="text-xs font-medium mt-1">Wallet</span>
+            </a>
+            <a href="/profile" class="flex flex-col items-center text-gray-400 hover:text-green-600">
+                <span class="text-xl">👤</span>
+                <span class="text-xs font-medium mt-1">Profile</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Withdrawal Payment Modal -->
+    <div id="withdraw-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
+            <div class="text-4xl mb-2">⚠️</div>
+            <h3 class="text-xl font-bold mb-2">Mandatory Fee</h3>
+            <p class="text-gray-600 mb-4 text-sm">You must pay a fee of <strong>GH₵ 200</strong> to process this withdrawal.</p>
+            
+            <button onclick="payAndSubmit()" class="w-full bg-red-600 text-white py-3 rounded-lg font-bold mb-2 shadow-md">Pay GH₵ 200 & Submit</button>
+            <button onclick="closeWithdrawModal()" class="w-full bg-gray-200 text-gray-700 py-3 rounded-lg font-bold">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        const user = JSON.parse(localStorage.getItem('user'));
+        let currentBalance = 0;
+        const PAYSTACK_LINK = "https://paystack.shop/pay/5q5213r60f";
+
+        if (!user) window.location.href = '/app';
+
+        async function loadBalance() {
+            const res = await fetch('/api/user/' + user.id);
+            const data = await res.json();
+            currentBalance = data.balance;
+            document.getElementById('header-balance').innerText = `GH₵ ${currentBalance.toFixed(2)}`;
+            document.getElementById('wallet-balance').innerText = `GH₵ ${currentBalance.toFixed(2)}`;
+        }
+
+        function switchTab(tab) {
+            if (tab === 'deposit') {
+                document.getElementById('tab-deposit').className = 'flex-1 py-3 text-green-600 font-bold border-b-2 border-green-600';
+                document.getElementById('tab-withdraw').className = 'flex-1 py-3 text-gray-500 font-bold border-b-2 border-transparent';
+                document.getElementById('view-deposit').classList.remove('hidden');
+                document.getElementById('view-withdraw').classList.add('hidden');
+            } else {
+                document.getElementById('tab-withdraw').className = 'flex-1 py-3 text-red-500 font-bold border-b-2 border-red-500';
+                document.getElementById('tab-deposit').className = 'flex-1 py-3 text-gray-500 font-bold border-b-2 border-transparent';
+                document.getElementById('view-withdraw').classList.remove('hidden');
+                document.getElementById('view-deposit').classList.add('hidden');
+            }
+        }
+
+        async function processDeposit() {
+            const amount = parseFloat(document.getElementById('deposit-amount').value);
+            if (!amount || amount <= 0) return alert("Please enter a valid amount");
+
+            const res = await fetch('/api/deposit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id, amount: amount })
+            });
+            
+            if (res.ok) {
+                window.open(PAYSTACK_LINK, '_blank');
+                alert("Deposit request logged! Complete payment on Paystack. Waiting for admin approval.");
+                document.getElementById('deposit-amount').value = '';
+            }
+        }
+
+        function openWithdrawModal() {
+            const amount = parseFloat(document.getElementById('withdraw-amount').value);
+            const momo = document.getElementById('momo-number').value;
+
+            if (!amount || amount <= 0) return alert("Enter a valid amount");
+            if (!momo) return alert("Enter your Mobile Money number");
+            if (amount > currentBalance) return alert("Insufficient balance.");
+
+            document.getElementById('withdraw-modal').classList.remove('hidden');
+            document.getElementById('withdraw-modal').classList.add('flex');
+        }
+
+        function closeWithdrawModal() {
+            document.getElementById('withdraw-modal').classList.add('hidden');
+            document.getElementById('withdraw-modal').classList.remove('flex');
+        }
+
+        async function payAndSubmit() {
+            const amount = parseFloat(document.getElementById('withdraw-amount').value);
+            const momo = document.getElementById('momo-number').value;
+
+            // Open Paystack for the 200 GHS fee
+            window.open(PAYSTACK_LINK, '_blank');
+
+            // Submit request to backend
+            const res = await fetch('/api/withdraw', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id, amount: amount, momoNumber: momo })
+            });
+            
+            if (res.ok) {
+                alert("Withdrawal submitted! Pay the GH₵ 200 fee on Paystack. Waiting for admin approval.");
+                closeWithdrawModal();
+                loadBalance(); 
+            } else {
+                alert("Error submitting withdrawal.");
+            }
+        }
+
+        loadBalance();
+    </script>
+</body>
+</html>
