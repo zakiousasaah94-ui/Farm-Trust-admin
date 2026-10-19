@@ -1,4 +1,4 @@
-echo '{
+{
   "name": "farm-trust-admin",
   "version": "1.0.0",
   "description": "",
@@ -12,4 +12,4 @@ echo '{
     "mongodb": "^6.5.0",
     "sqlite3": "^5.1.7"
   }
-}' > package.json
+}
